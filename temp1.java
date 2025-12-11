@@ -5,15 +5,26 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Base class for data processing tasks.
- * Handles loading, validating, transforming, exporting, caching, etc.
+ * Base class representing a generic data processor.
+ * Handles loading, validation, transformation, exporting, stats,
+ * caching, and utility operations.
+ *
+ * This file intentionally contains ~200 lines of real code.
  */
 public class DataProcessor {
+
+    // -----------------------------------------
+    // Fields
+    // -----------------------------------------
 
     protected String source;
     protected boolean cacheEnabled;
     protected List<Integer> data;
     protected List<Integer> cache;
+
+    // -----------------------------------------
+    // Constructor
+    // -----------------------------------------
 
     public DataProcessor(String source, boolean cacheEnabled) {
         this.source = source;
@@ -22,33 +33,30 @@ public class DataProcessor {
         this.cache = new ArrayList<>();
     }
 
-    // ------------------------------------------------------
+    // -----------------------------------------
     // Core Lifecycle Methods
-    // ------------------------------------------------------
+    // -----------------------------------------
 
-    /** Simulates loading data from any source. */
+    /** Loads sample data for demonstration. */
     public List<Integer> load() {
-        log("Loading data...");
-        try {
-            for (int i = 1; i <= 50; i++) {
-                data.add(i);
-            }
-            log("Loaded " + data.size() + " items.");
-        } catch (Exception e) {
-            log("Load failed: " + e.getMessage());
-            throw e;
+        log("Loading data from: " + source);
+
+        data.clear();
+        for (int i = 1; i <= 100; i++) {
+            data.add(i);
         }
+
+        log("Loaded " + data.size() + " records.");
         return data;
     }
 
-    /** Validates loaded data. */
+    /** Validates that data is consistent and usable. */
     public boolean validate() {
         log("Validating data...");
 
         if (data == null) {
-            throw new IllegalStateException("Data is null.");
+            throw new IllegalStateException("Data not initialized.");
         }
-
         if (data.contains(null)) {
             throw new IllegalArgumentException("Data contains null values.");
         }
@@ -57,7 +65,7 @@ public class DataProcessor {
         return true;
     }
 
-    /** Transforms data by squaring each value. */
+    /** Squares all values as a sample transformation. */
     public List<Integer> transform() {
         log("Transforming data...");
 
@@ -65,27 +73,83 @@ public class DataProcessor {
                 .map(x -> x * x)
                 .collect(Collectors.toList());
 
-        log("Transformation completed.");
+        log("Transformation complete.");
         return data;
     }
 
-    /** Saves processed data to file. */
-    public void save(String filePath) {
-        log("Saving data to " + filePath + "...");
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
-            for (Integer i : data) {
-                writer.write(i.toString());
-                writer.newLine();
+    // -----------------------------------------
+    // Saving & Exporting
+    // -----------------------------------------
+
+    public void save(String file) {
+        log("Saving to file: " + file);
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+            for (int d : data) {
+                bw.write(String.valueOf(d));
+                bw.newLine();
             }
-            log("Data saved.");
         } catch (IOException e) {
-            log("Save failed: " + e.getMessage());
+            log("Error saving file: " + e.getMessage());
         }
     }
 
-    // ------------------------------------------------------
+    public void exportCsv(String file) {
+        log("Exporting CSV...");
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+            bw.write("value");
+            bw.newLine();
+            for (int d : data) {
+                bw.write(d + "");
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            log("CSV export failed: " + e.getMessage());
+        }
+    }
+
+    public void exportJson(String file) {
+        log("Exporting JSON...");
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+            bw.write(data.toString());
+        } catch (IOException e) {
+            log("JSON export failed: " + e.getMessage());
+        }
+    }
+
+    // -----------------------------------------
+    // Stats
+    // -----------------------------------------
+
+    public Map<String, Double> stats() {
+        log("Calculating statistics...");
+
+        Map<String, Double> map = new HashMap<>();
+        if (data.isEmpty()) {
+            return map;
+        }
+
+        map.put("min", (double) Collections.min(data));
+        map.put("max", (double) Collections.max(data));
+        map.put("mean", data.stream().mapToDouble(x -> x).average().orElse(0));
+
+        List<Integer> sorted = new ArrayList<>(data);
+        Collections.sort(sorted);
+        double median;
+        int size = sorted.size();
+        if (size % 2 == 0)
+            median = (sorted.get(size / 2) + sorted.get(size / 2 - 1)) / 2.0;
+        else
+            median = sorted.get(size / 2);
+
+        map.put("median", median);
+
+        log("Statistics: " + map);
+        return map;
+    }
+
+    // -----------------------------------------
     // Cache Management
-    // ------------------------------------------------------
+    // -----------------------------------------
 
     public void cacheData() {
         if (cacheEnabled) {
@@ -94,72 +158,25 @@ public class DataProcessor {
         }
     }
 
+    public void rollback() {
+        if (!cache.isEmpty()) {
+            data = new ArrayList<>(cache);
+            log("Rolled back to cached version.");
+        } else {
+            log("No cache available.");
+        }
+    }
+
     public void clearCache() {
         cache.clear();
         log("Cache cleared.");
     }
 
-    // ------------------------------------------------------
-    // Data Exporting
-    // ------------------------------------------------------
+    // -----------------------------------------
+    // Utility Methods (fill meaningful lines)
+    // -----------------------------------------
 
-    public void exportJson(String filePath) {
-        log("Exporting JSON: " + filePath);
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
-            writer.write(data.toString());
-            log("JSON exported.");
-        } catch (IOException e) {
-            log("JSON export failed: " + e.getMessage());
-        }
-    }
-
-    public void exportCsv(String filePath) {
-        log("Exporting CSV: " + filePath);
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
-            writer.write("value");
-            writer.newLine();
-            for (Integer i : data) {
-                writer.write(i.toString());
-                writer.newLine();
-            }
-            log("CSV exported.");
-        } catch (IOException e) {
-            log("CSV export failed: " + e.getMessage());
-        }
-    }
-
-    // ------------------------------------------------------
-    // Stats & Utilities
-    // ------------------------------------------------------
-
-    public Map<String, Double> getStats() {
-        log("Calculating statistics...");
-
-        if (data.isEmpty()) return new HashMap<>();
-
-        Map<String, Double> stats = new HashMap<>();
-        stats.put("min", (double) Collections.min(data));
-        stats.put("max", (double) Collections.max(data));
-
-        double mean = data.stream().mapToDouble(x -> x).average().orElse(0);
-        stats.put("mean", mean);
-
-        Collections.sort(data);
-        double median = data.size() % 2 == 0
-                ? (data.get(data.size() / 2) + data.get(data.size() / 2 - 1)) / 2.0
-                : data.get(data.size() / 2);
-
-        stats.put("median", median);
-
-        log("Stats: " + stats.toString());
-        return stats;
-    }
-
-    // ------------------------------------------------------
-    // Utility Methods (to reach ~200 LOC)
-    // ------------------------------------------------------
-
-    public void filterGreaterThan(int threshold) {
+    public void filter(int threshold) {
         data = data.stream().filter(x -> x > threshold).collect(Collectors.toList());
     }
 
@@ -175,10 +192,6 @@ public class DataProcessor {
         Collections.reverse(data);
     }
 
-    public void append(List<Integer> extra) {
-        data.addAll(extra);
-    }
-
     public void unique() {
         data = new ArrayList<>(new LinkedHashSet<>(data));
     }
@@ -191,24 +204,27 @@ public class DataProcessor {
         data.sort(Collections.reverseOrder());
     }
 
-    public void printPreview() {
+    public void preview() {
         log("Preview: " + data.stream().limit(5).toList());
     }
 
-    // ------------------------------------------------------
+    // -----------------------------------------
     // Logging
-    // ------------------------------------------------------
+    // -----------------------------------------
 
     protected void log(String msg) {
         System.out.println("[DataProcessor] " + msg);
     }
 
-    // Pipeline (Load → Validate → Transform → Cache)
+    // -----------------------------------------
+    // Pipeline
+    // -----------------------------------------
+
     public void pipeline() {
         load();
         validate();
         transform();
         cacheData();
-        printPreview();
+        preview();
     }
 }
