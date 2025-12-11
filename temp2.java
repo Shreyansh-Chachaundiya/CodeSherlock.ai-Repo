@@ -2,47 +2,59 @@ package com.example.processing;
 
 import java.util.*;
 
+/**
+ * Advanced data processor extending DataProcessor.
+ * Adds preprocessing, ML-like workflow, metrics, batch processing,
+ * prediction, tuning, and extended pipeline.
+ *
+ * This file intentionally contains ~200 lines of real Java code.
+ */
 public class AdvancedDataProcessor extends DataProcessor {
 
-    private DummyMLModel model;
-    private List<DataStep> preprocessSteps;
+    private MLModel model;
+    private List<PreprocessStep> preprocessSteps;
     private Map<String, Double> metrics;
+
+    // -----------------------------------------
+    // Constructor
+    // -----------------------------------------
 
     public AdvancedDataProcessor(String source) {
         super(source, true);
-        this.model = new DummyMLModel();
+        this.model = new MLModel();
         this.preprocessSteps = new ArrayList<>();
         this.metrics = new HashMap<>();
     }
 
-    // ------------------------------------------------------
+    // -----------------------------------------
     // Preprocessing
-    // ------------------------------------------------------
+    // -----------------------------------------
 
-    public List<Integer> preprocess() {
-        log("Running preprocess steps...");
-        for (DataStep step : preprocessSteps) {
-            data = step.apply(data);
-        }
-        return data;
-    }
-
-    public void addPreprocessStep(DataStep step) {
+    public void addPreprocessStep(PreprocessStep step) {
         preprocessSteps.add(step);
     }
 
-    public void removePreprocessStep(DataStep step) {
+    public void removePreprocessStep(PreprocessStep step) {
         preprocessSteps.remove(step);
     }
 
-    // ------------------------------------------------------
-    // ML Operations
-    // ------------------------------------------------------
+    public List<Integer> preprocess() {
+        log("Running preprocess steps...");
+        for (PreprocessStep step : preprocessSteps) {
+            data = step.apply(data);
+        }
+        log("Preprocessing complete.");
+        return data;
+    }
+
+    // -----------------------------------------
+    // ML-like Operations
+    // -----------------------------------------
 
     public Map<String, Object> trainModel() {
         log("Training model...");
         Map<String, Object> result = model.train(data);
-        log("Model trained: " + result);
+        log("Training result: " + result);
         return result;
     }
 
@@ -50,74 +62,71 @@ public class AdvancedDataProcessor extends DataProcessor {
         log("Evaluating model...");
         Map<String, Double> result = model.evaluate(data);
         metrics.putAll(result);
-        log("Evaluation done: " + result);
+        log("Evaluation: " + result);
         return result;
     }
 
-    public double hyperTune() {
-        log("Hyperparameter tuning...");
-        double best = 0.0;
+    public double tuneModel() {
+        log("Tuning hyperparameters...");
+
+        double best = 0;
         for (double lr : new double[]{0.01, 0.05, 0.1}) {
-            double score = lr * 9.2; // fake logic
-            if (score > best) best = score;
+            double score = lr * 9.2; // Fake logic
+            if (score > best) {
+                best = score;
+            }
         }
+
         metrics.put("tunedScore", best);
-        log("Best hyperparam score: " + best);
+        log("Best score: " + best);
         return best;
     }
 
     public List<Integer> predictAll() {
-        List<Integer> preds = new ArrayList<>();
-        for (Integer d : data) {
-            preds.add(model.predict(d));
+        List<Integer> out = new ArrayList<>();
+        for (int d : data) {
+            out.add(model.predict(d));
         }
-        return preds;
+        return out;
     }
 
-    // ------------------------------------------------------
-    // Visualization (text simulation)
-    // ------------------------------------------------------
-
-    public void visualize() {
-        log("Visualizing data...");
-        System.out.println("Sample Chart -> " + data.stream().limit(5).toList());
+    public void printMetrics() {
+        log("Metrics: " + metrics);
     }
 
-    // ------------------------------------------------------
+    // -----------------------------------------
     // Batch Processing
-    // ------------------------------------------------------
+    // -----------------------------------------
 
     public List<Map<String, Object>> batchProcess(int batches) {
-        log("Batch processing into " + batches + " batches");
+        log("Batch processing: " + batches);
+
+        List<Map<String, Object>> results = new ArrayList<>();
         int size = data.size() / batches;
 
-        List<Map<String, Object>> result = new ArrayList<>();
-
         for (int i = 0; i < batches; i++) {
-            List<Integer> batch = data.subList(i * size, Math.min((i + 1) * size, data.size()));
-            log("Processing batch " + (i + 1));
-            result.add(model.train(batch));
+            int start = i * size;
+            int end = Math.min(start + size, data.size());
+            List<Integer> batch = data.subList(start, end);
+
+            results.add(model.train(batch));
         }
-        return result;
+
+        return results;
     }
 
-    // ------------------------------------------------------
-    // Recovery
-    // ------------------------------------------------------
+    // -----------------------------------------
+    // Visualization (text-based)
+    // -----------------------------------------
 
-    public void rollback() {
-        log("Rolling back from cache...");
-        if (!cache.isEmpty()) {
-            data = new ArrayList<>(cache);
-            log("Rollback complete.");
-        } else {
-            log("No cache; rollback aborted.");
-        }
+    public void visualize() {
+        log("Visualizing top values...");
+        System.out.println("Chart Sample: " + data.stream().limit(5).toList());
     }
 
-    // ------------------------------------------------------
-    // Extended Pipeline
-    // ------------------------------------------------------
+    // -----------------------------------------
+    // Extended Pipeline (Overrides)
+    // -----------------------------------------
 
     @Override
     public void pipeline() {
@@ -127,39 +136,38 @@ public class AdvancedDataProcessor extends DataProcessor {
         transform();
         trainModel();
         evaluateModel();
-        hyperTune();
+        tuneModel();
         visualize();
         cacheData();
-        printPreview();
+        preview();
     }
 
-    // ------------------------------------------------------
-    // Inner Classes
-    // ------------------------------------------------------
+    // -----------------------------------------
+    // Inner Interfaces & Mock ML Model
+    // -----------------------------------------
 
-    /** Function interface for preprocess steps. */
-    public interface DataStep {
+    /** Preprocess functional interface */
+    public interface PreprocessStep {
         List<Integer> apply(List<Integer> input);
     }
 
-    /** Dummy ML Model (mock implementation). */
-    public static class DummyMLModel {
-
+    /** Dummy ML Model class */
+    public static class MLModel {
         public Map<String, Object> train(List<Integer> data) {
-            Map<String, Object> res = new HashMap<>();
-            res.put("trained", true);
-            res.put("items", data.size());
-            return res;
+            Map<String, Object> m = new HashMap<>();
+            m.put("trained", true);
+            m.put("size", data.size());
+            return m;
         }
 
         public Map<String, Double> evaluate(List<Integer> data) {
-            Map<String, Double> res = new HashMap<>();
-            res.put("accuracy", 0.92);
-            return res;
+            Map<String, Double> m = new HashMap<>();
+            m.put("accuracy", 0.91);
+            return m;
         }
 
-        public int predict(int x) {
-            return x * 2;
+        public int predict(int value) {
+            return value * 2;
         }
     }
 }
